@@ -62,7 +62,12 @@ def student_dashboard():
             status = cursor.fetchone()
             meal_status[day][meal_type] = status[0] if status else None
 
-    return render_template('student_dashboard.html', menu=menu, meal_status=meal_status)
+    # Fetch booked meals for the current student
+    cursor.execute("SELECT day, meal_type FROM meal WHERE student_id = %s AND status = 'booked'", (1,))
+    booked_meals = cursor.fetchall()
+
+    return render_template('student_dashboard.html', menu=menu, meal_status=meal_status, booked_meals=booked_meals)
+
 
 
 @app.route('/book_meal/<day>/<meal_type>', methods=['POST'])
@@ -82,6 +87,32 @@ def cancel_meal(day, meal_type):
                    (1, day, meal_type, 'cancelled'))  # Assuming student ID is 1 (replace with actual student ID)
     db.commit()
     return redirect(url_for('student_dashboard'))
+
+# Routes
+@app.route('/book_cancel_meal/<day>/<meal_type>', methods=['POST'])
+def book_cancel_meal(day, meal_type):
+    # Check if the meal is already booked
+    cursor.execute("SELECT status FROM meal WHERE student_id = %s AND day = %s AND meal_type = %s",
+                   (1, day, meal_type))  # Assuming student ID is 1 (replace with actual student ID)
+    status = cursor.fetchone()
+    if status and status[0] == 'booked':
+        # Meal is booked, cancel it
+        cursor.execute("DELETE FROM meal WHERE student_id = %s AND day = %s AND meal_type = %s",
+                       (1, day, meal_type))  # Assuming student ID is 1 (replace with actual student ID)
+        db.commit()
+    else:
+        # Meal is not booked, book it
+        try:
+            cursor.execute("INSERT INTO meal (student_id, day, meal_type, status) VALUES (%s, %s, %s, %s)",
+                           (1, day, meal_type, 'booked'))  # Assuming student ID is 1 (replace with actual student ID)
+            db.commit()
+        except mysql.connector.errors.IntegrityError:
+            # Duplicate entry error
+            cursor.execute("DELETE FROM meal WHERE student_id = %s AND day = %s AND meal_type = %s",
+                           (1, day, meal_type))  # Assuming student ID is 1 (replace with actual student ID)
+            db.commit()
+    return redirect(url_for('student_dashboard'))
+
 
 @app.route('/admin_dashboard')
 def admin_dashboard():

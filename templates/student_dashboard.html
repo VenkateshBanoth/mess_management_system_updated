@@ -33,24 +33,35 @@
             </td>
             {% endfor %}
             <td>
-                <form action="/book_meal/{{ day }}/breakfast" method="post">
+                {% if ('booked', 'breakfast') not in booked_meals %}
+                <form action="/book_cancel_meal/{{ day }}/breakfast" method="post">
                     <input type="submit" value="Book Breakfast">
                 </form>
-                <form action="/cancel_meal/{{ day }}/breakfast" method="post">
+                {% else %}
+                <form action="/book_cancel_meal/{{ day }}/breakfast" method="post">
                     <input type="submit" value="Cancel Breakfast">
                 </form>
-                <form action="/book_meal/{{ day }}/lunch" method="post">
+                {% endif %}
+                
+                {% if ('booked', 'lunch') not in booked_meals %}
+                <form action="/book_cancel_meal/{{ day }}/lunch" method="post">
                     <input type="submit" value="Book Lunch">
                 </form>
-                <form action="/cancel_meal/{{ day }}/lunch" method="post">
+                {% else %}
+                <form action="/book_cancel_meal/{{ day }}/lunch" method="post">
                     <input type="submit" value="Cancel Lunch">
                 </form>
-                <form action="/book_meal/{{ day }}/dinner" method="post">
+                {% endif %}
+                
+                {% if ('booked', 'dinner') not in booked_meals %}
+                <form action="/book_cancel_meal/{{ day }}/dinner" method="post">
                     <input type="submit" value="Book Dinner">
                 </form>
-                <form action="/cancel_meal/{{ day }}/dinner" method="post">
+                {% else %}
+                <form action="/book_cancel_meal/{{ day }}/dinner" method="post">
                     <input type="submit" value="Cancel Dinner">
                 </form>
+                {% endif %}
             </td>
         </tr>
         {% endfor %}
