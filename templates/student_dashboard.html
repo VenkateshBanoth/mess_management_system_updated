@@ -1,0 +1,59 @@
+<!-- student_dashboard.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/styles.css">
+    <title>Student Dashboard</title>
+</head>
+<body>
+    <h1>Welcome to Student Dashboard</h1>
+    
+    <h2>Weekly Menu</h2>
+    <table>
+        <tr>
+            <th>Day</th>
+            <th>Breakfast</th>
+            <th>Lunch</th>
+            <th>Dinner</th>
+            <th>Action</th> <!-- New column for actions -->
+        </tr>
+        {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+        <tr>
+            <td>{{ day }}</td>
+            {% for meal_type in ['breakfast', 'lunch', 'dinner'] %}
+            <td>
+                {% for meal in menu %}
+                {% if meal[0] == day and meal[1] == meal_type %}
+                {{ meal[2] }} <!-- Display the dish for the corresponding day and meal type -->
+                {% endif %}
+                {% endfor %}
+            </td>
+            {% endfor %}
+            <td>
+                <form action="/book_meal/{{ day }}/breakfast" method="post">
+                    <input type="submit" value="Book Breakfast">
+                </form>
+                <form action="/cancel_meal/{{ day }}/breakfast" method="post">
+                    <input type="submit" value="Cancel Breakfast">
+                </form>
+                <form action="/book_meal/{{ day }}/lunch" method="post">
+                    <input type="submit" value="Book Lunch">
+                </form>
+                <form action="/cancel_meal/{{ day }}/lunch" method="post">
+                    <input type="submit" value="Cancel Lunch">
+                </form>
+                <form action="/book_meal/{{ day }}/dinner" method="post">
+                    <input type="submit" value="Book Dinner">
+                </form>
+                <form action="/cancel_meal/{{ day }}/dinner" method="post">
+                    <input type="submit" value="Cancel Dinner">
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

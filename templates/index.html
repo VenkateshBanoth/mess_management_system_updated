@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Mess Management System</title>
+</head>
+<body>
+    <h1>Welcome to Mess Management System</h1>
+    <!-- Sign-in Form -->
+    <form action="{{ url_for('index') }}" method="post">
+        <label for="email">Email:</label><br>
+        <input type="email" id="email" name="email"><br>
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password"><br><br>
+        <input type="submit" value="Login">
+    </form>
+    <!-- Sign-up Link -->
+    <p>Not a member yet? <a href="{{ url_for('signup') }}">Sign up</a></p>
+</body>
+</html>
