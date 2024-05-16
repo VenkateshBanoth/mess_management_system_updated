@@ -20,7 +20,7 @@
             <th>Dinner</th>
             <th>Action</th> <!-- New column for actions -->
         </tr>
-        {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+        {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %} <!-- Removed 'Sunday' -->
         <tr>
             <td>{{ day }}</td>
             {% for meal_type in ['breakfast', 'lunch', 'dinner'] %}
@@ -34,31 +34,31 @@
             {% endfor %}
             <td>
                 {% if ('booked', 'breakfast') not in booked_meals %}
-                <form action="/book_cancel_meal/{{ day }}/breakfast" method="post">
+                <form id="book_breakfast_{{ day }}" action="/book_cancel_meal/{{ day }}/breakfast" method="post">
                     <input type="submit" value="Book Breakfast">
                 </form>
                 {% else %}
-                <form action="/book_cancel_meal/{{ day }}/breakfast" method="post">
+                <form id="cancel_breakfast_{{ day }}" action="/book_cancel_meal/{{ day }}/breakfast" method="post">
                     <input type="submit" value="Cancel Breakfast">
                 </form>
                 {% endif %}
                 
                 {% if ('booked', 'lunch') not in booked_meals %}
-                <form action="/book_cancel_meal/{{ day }}/lunch" method="post">
+                <form id="book_lunch_{{ day }}" action="/book_cancel_meal/{{ day }}/lunch" method="post">
                     <input type="submit" value="Book Lunch">
                 </form>
                 {% else %}
-                <form action="/book_cancel_meal/{{ day }}/lunch" method="post">
+                <form id="cancel_lunch_{{ day }}" action="/book_cancel_meal/{{ day }}/lunch" method="post">
                     <input type="submit" value="Cancel Lunch">
                 </form>
                 {% endif %}
                 
                 {% if ('booked', 'dinner') not in booked_meals %}
-                <form action="/book_cancel_meal/{{ day }}/dinner" method="post">
+                <form id="book_dinner_{{ day }}" action="/book_cancel_meal/{{ day }}/dinner" method="post">
                     <input type="submit" value="Book Dinner">
                 </form>
                 {% else %}
-                <form action="/book_cancel_meal/{{ day }}/dinner" method="post">
+                <form id="cancel_dinner_{{ day }}" action="/book_cancel_meal/{{ day }}/dinner" method="post">
                     <input type="submit" value="Cancel Dinner">
                 </form>
                 {% endif %}
@@ -66,5 +66,47 @@
         </tr>
         {% endfor %}
     </table>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Function to toggle button text and submit the form asynchronously
+        function toggleButtonTextAndSubmit(button) {
+            if (button.value.includes('Book')) {
+                button.value = button.value.replace('Book', 'Cancel');
+            } else {
+                button.value = button.value.replace('Cancel', 'Book');
+            }
+
+            // Send an AJAX request to submit the form
+            const form = button.closest('form');
+            const formData = new FormData(form);
+            const url = form.action;
+            const method = form.method;
+
+            fetch(url, {
+                method: method,
+                body: formData
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                // Form submission successful
+            }).catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // Attach click event listeners to all meal booking/canceling buttons
+        document.querySelectorAll('input[type="submit"]').forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.preventDefault(); // Prevent default form submission
+
+                toggleButtonTextAndSubmit(button); // Toggle button text and submit the form asynchronously
+            });
+        });
+    });
+</script>
+
+    
 </body>
 </html>
