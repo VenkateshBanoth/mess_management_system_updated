@@ -1,40 +1,36 @@
-<!-- admin_dashboard.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrative Dashboard</title>
-    <!-- Add any necessary CSS styles here -->
+    <link rel="stylesheet" href="/static/styles.css">
+    <title>Admin Dashboard</title>
 </head>
 <body>
-    <h1>Administrative Dashboard</h1>
-    <h2>Meal Counts</h2>
-    <table border="1">
+    <h1>Admin Dashboard</h1>
+    
+    <h2>Weekly Meal Counts</h2>
+    <table>
         <tr>
             <th>Day</th>
             <th>Breakfast</th>
             <th>Lunch</th>
             <th>Dinner</th>
         </tr>
-        {% for day, breakfast_count, lunch_count, dinner_count in meal_counts %}
+        {% for day, meals in meal_counts.items() %}
         <tr>
             <td>{{ day }}</td>
-            <td>{{ breakfast_count }}</td>
-            <td>{{ lunch_count }}</td>
-            <td>{{ dinner_count }}</td>
+            <td>{{ meals.breakfast }}</td>
+            <td>{{ meals.lunch }}</td>
+            <td>{{ meals.dinner }}</td>
         </tr>
         {% endfor %}
     </table>
-    <h2>View/Edit Student Data</h2>
-    <p>Here, provide functionality to view and edit student data</p>
-    <!-- Add a button or link to redirect to view/edit student data page -->
-    <h2>Add Students in Bulk</h2>
-    <form action="/upload_students" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".csv">
-        <input type="submit" value="Upload CSV" name="submit">
-    </form>
-    <!-- Add any other functionalities or content as needed -->
+    
+    <h2>Manage Students</h2>
+    <a href="{{ url_for('manage_students') }}">View and Edit Student Data</a>
+    
+    <h2>Manage Menu</h2>
+    <a href="{{ url_for('manage_menu') }}">View and Edit Menu</a>
 </body>
 </html>

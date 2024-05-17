@@ -19,21 +19,28 @@ cursor = db.cursor()
 # Routes
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    print("Session data in index route:", session)  # Add this line at the beginning of index route
-    # Check if the sign-in form is submitted
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        # Check if user exists in the database
+        
+        # Check if user is an admin
+        cursor.execute("SELECT id FROM admin WHERE email = %s AND password = %s", (email, password))
+        admin_id = cursor.fetchone()
+        if admin_id:
+            session['admin_id'] = admin_id[0]
+            return redirect(url_for('admin_dashboard'))
+        
+        # Check if user is a student
         cursor.execute("SELECT id FROM students WHERE email = %s AND password = %s", (email, password))
-        user_id = cursor.fetchone()
-        if user_id:
-            session['user_id'] = user_id[0]  # Store user's ID in session
-            print("User ID stored in session:", session['user_id'])
-            return redirect(url_for('student_dashboard')) # Redirect to student dashboard if user exists
+        student_id = cursor.fetchone()
+        if student_id:
+            session['user_id'] = student_id[0]
+            return redirect(url_for('student_dashboard'))
         else:
             return "Invalid credentials. Please try again."
-    return render_template('index.html') # Render the sign-in page
+    
+    return render_template('index.html')
+
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -128,14 +135,97 @@ def book_cancel_meal(day, meal_type):
 
 @app.route('/admin_dashboard')
 def admin_dashboard():
-    # Fetch meal counts from the database
-    cursor.execute("SELECT day, SUM(CASE WHEN meal_type='breakfast' THEN 1 ELSE 0 END) AS breakfast_count, "
-                   "SUM(CASE WHEN meal_type='lunch' THEN 1 ELSE 0 END) AS lunch_count, "
-                   "SUM(CASE WHEN meal_type='dinner' THEN 1 ELSE 0 END) AS dinner_count "
-                   "FROM meal GROUP BY day")
-    meal_counts = cursor.fetchall()
-
+    admin_id = session.get('admin_id')
+    if not admin_id:
+        return redirect(url_for('index'))
+    
+    # Get meal counts for each day and meal type
+    meal_counts = {}
+    for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
+        meal_counts[day] = {}
+        for meal_type in ['breakfast', 'lunch', 'dinner']:
+            cursor.execute("SELECT COUNT(*) FROM meal WHERE day = %s AND meal_type = %s AND status = 'booked'", (day, meal_type))
+            count = cursor.fetchone()[0]
+            meal_counts[day][meal_type] = count
+    
     return render_template('admin_dashboard.html', meal_counts=meal_counts)
+
+@app.route('/manage_students', methods=['GET', 'POST'])
+def manage_students():
+    admin_id = session.get('admin_id')
+    if not admin_id:
+        return redirect(url_for('index'))
+
+    # Handle file upload for bulk adding students
+    if request.method == 'POST':
+        if 'file' in request.files:
+            file = request.files['file']
+            if file.filename.endswith('.csv'):
+                file.save(file.filename)
+                with open(file.filename, 'r') as f:
+                    reader = csv.reader(f)
+                    next(reader)  # Skip the header row
+                    for row in reader:
+                        cursor.execute("INSERT INTO students (email, password) VALUES (%s, %s)", (row[1], row[2]))
+                db.commit()
+
+    cursor.execute("SELECT * FROM students")
+    students = cursor.fetchall()
+    return render_template('manage_students.html', students=students)
+
+
+@app.route('/manage_menu', methods=['GET', 'POST'])
+def manage_menu():
+    admin_id = session.get('admin_id')
+    if not admin_id:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        menu_data = request.form.getlist('menu_data')
+        for item in menu_data:
+            day, meal_type, dish = item.split(',')
+            cursor.execute("UPDATE menu SET dish = %s WHERE day = %s AND meal_type = %s", (dish, day, meal_type))
+        db.commit()
+    
+    cursor.execute("SELECT * FROM menu")
+    menu = cursor.fetchall()
+    
+    return render_template('manage_menu.html', menu=menu)
+
+@app.route('/edit_student/<int:student_id>', methods=['GET', 'POST'])
+def edit_student(student_id):
+    admin_id = session.get('admin_id')
+    if not admin_id:
+        return redirect(url_for('index'))
+
+    cursor.execute("SELECT * FROM students WHERE id = %s", (student_id,))
+    student = cursor.fetchone()
+
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        phone_number = request.form.get('phone_number')
+        cursor.execute(
+            "UPDATE students SET email = %s, password = %s, first_name = %s, last_name = %s, phone_number = %s WHERE id = %s",
+            (email, password, first_name, last_name, phone_number, student_id)
+        )
+        db.commit()
+        return redirect(url_for('manage_students'))
+
+    return render_template('edit_student.html', student=student)
+
+
+@app.route('/delete_student/<int:student_id>', methods=['POST'])
+def delete_student(student_id):
+    admin_id = session.get('admin_id')
+    if not admin_id:
+        return redirect(url_for('index'))
+
+    cursor.execute("DELETE FROM students WHERE id = %s", (student_id,))
+    db.commit()
+    return redirect(url_for('manage_students'))
 
 if __name__ == "__main__":
     app.run(debug=True)

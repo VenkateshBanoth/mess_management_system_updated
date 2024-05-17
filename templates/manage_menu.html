@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/styles.css">
+    <title>Manage Menu</title>
+</head>
+<body>
+    <h1>Manage Menu</h1>
+    
+    <h2>Menu Data</h2>
+    <form action="{{ url_for('manage_menu') }}" method="post">
+        <table>
+            <tr>
+                <th>Day</th>
+                <th>Meal Type</th>
+                <th>Dish</th>
+            </tr>
+            {% for item in menu %}
+            <tr>
+                <td>{{ item.day }}</td>
+                <td>{{ item.meal_type }}</td>
+                <td><input type="text" name="menu_data" value="{{ item.day }},{{ item.meal_type }},{{ item.dish }}"></td>
+            </tr>
+            {% endfor %}
+        </table>
+        <input type="submit" value="Save Changes">
+    </form>
+</body>
+</html>
