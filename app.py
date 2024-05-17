@@ -156,22 +156,16 @@ def manage_students():
     if not admin_id:
         return redirect(url_for('index'))
 
-    # Handle file upload for bulk adding students
-    if request.method == 'POST':
-        if 'file' in request.files:
-            file = request.files['file']
-            if file.filename.endswith('.csv'):
-                file.save(file.filename)
-                with open(file.filename, 'r') as f:
-                    reader = csv.reader(f)
-                    next(reader)  # Skip the header row
-                    for row in reader:
-                        cursor.execute("INSERT INTO students (email, password) VALUES (%s, %s)", (row[1], row[2]))
-                db.commit()
-
-    cursor.execute("SELECT * FROM students")
+    search_query = request.args.get('search')
+    if search_query:
+        cursor.execute("SELECT * FROM students WHERE email LIKE %s OR first_name LIKE %s OR last_name LIKE %s", 
+                       ('%' + search_query + '%', '%' + search_query + '%', '%' + search_query + '%'))
+    else:
+        cursor.execute("SELECT * FROM students")
+    
     students = cursor.fetchall()
     return render_template('manage_students.html', students=students)
+
 
 
 @app.route('/manage_menu', methods=['GET', 'POST'])
