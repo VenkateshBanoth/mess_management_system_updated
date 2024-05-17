@@ -19,9 +19,11 @@
             </tr>
             {% for item in menu %}
             <tr>
-                <td>{{ item.day }}</td>
-                <td>{{ item.meal_type }}</td>
-                <td><input type="text" name="menu_data" value="{{ item.day }},{{ item.meal_type }},{{ item.dish }}"></td>
+                <td>{{ item[0] }}</td>
+                <td>{{ item[1] }}</td>
+                <td><input type="text" name="menu_data[{{ loop.index0 }}][dish]" value="{{ item[2] }}"></td>
+                <input type="hidden" name="menu_data[{{ loop.index0 }}][day]" value="{{ item[0] }}">
+                <input type="hidden" name="menu_data[{{ loop.index0 }}][meal_type]" value="{{ item[1] }}">
             </tr>
             {% endfor %}
         </table>

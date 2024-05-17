@@ -176,21 +176,19 @@ def manage_students():
 
 @app.route('/manage_menu', methods=['GET', 'POST'])
 def manage_menu():
-    admin_id = session.get('admin_id')
-    if not admin_id:
-        return redirect(url_for('index'))
-    
     if request.method == 'POST':
-        menu_data = request.form.getlist('menu_data')
-        for item in menu_data:
-            day, meal_type, dish = item.split(',')
+        menu_data = request.form
+        for i in range(len(menu_data) // 3):
+            day = menu_data.get(f'menu_data[{i}][day]')
+            meal_type = menu_data.get(f'menu_data[{i}][meal_type]')
+            dish = menu_data.get(f'menu_data[{i}][dish]')
             cursor.execute("UPDATE menu SET dish = %s WHERE day = %s AND meal_type = %s", (dish, day, meal_type))
         db.commit()
-    
-    cursor.execute("SELECT * FROM menu")
-    menu = cursor.fetchall()
-    
-    return render_template('manage_menu.html', menu=menu)
+
+    cursor.execute("SELECT day, meal_type, dish FROM menu")
+    menu_data = cursor.fetchall()
+    print("Fetched Menu Data:", menu_data)  # Debugging statement to check data retrieval
+    return render_template('manage_menu.html', menu=menu_data)
 
 @app.route('/edit_student/<int:student_id>', methods=['GET', 'POST'])
 def edit_student(student_id):
