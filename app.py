@@ -1,7 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
 
 app = Flask(__name__)
+
+# Set the secret key
+app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 # Connect to MySQL
 db = mysql.connector.connect(
@@ -16,14 +19,17 @@ cursor = db.cursor()
 # Routes
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    print("Session data in index route:", session)  # Add this line at the beginning of index route
     # Check if the sign-in form is submitted
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
         # Check if user exists in the database
-        cursor.execute("SELECT * FROM students WHERE email = %s AND password = %s", (email, password))
-        user = cursor.fetchone()
-        if user:
+        cursor.execute("SELECT id FROM students WHERE email = %s AND password = %s", (email, password))
+        user_id = cursor.fetchone()
+        if user_id:
+            session['user_id'] = user_id[0]  # Store user's ID in session
+            print("User ID stored in session:", session['user_id'])
             return redirect(url_for('student_dashboard')) # Redirect to student dashboard if user exists
         else:
             return "Invalid credentials. Please try again."
@@ -48,26 +54,31 @@ def signup():
 # Routes
 @app.route('/student_dashboard')
 def student_dashboard():
-    # Get weekly menu from the database
-    cursor.execute("SELECT day, meal_type, dish FROM menu ORDER BY day")
-    menu = cursor.fetchall()  # Fetch all rows from the menu table
+    # Get user ID from session
+    user_id = session.get('user_id')
     
-    # Get meal status for each day and meal type
-    meal_status = {}
-    for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
-        meal_status[day] = {}
-        for meal_type in ['breakfast', 'lunch', 'dinner']:
-            cursor.execute("SELECT status FROM meal WHERE student_id = %s AND day = %s AND meal_type = %s",
-                           (1, day, meal_type))  # Assuming student ID is 1 (replace with actual student ID)
-            status = cursor.fetchone()
-            meal_status[day][meal_type] = status[0] if status else None
-
-    # Fetch booked meals for the current student
-    cursor.execute("SELECT day, meal_type FROM meal WHERE student_id = %s AND status = 'booked'", (1,))
-    booked_meals = cursor.fetchall()
-
-    return render_template('student_dashboard.html', menu=menu, meal_status=meal_status, booked_meals=booked_meals)
-
+    if user_id:
+        # Get weekly menu from the database
+        cursor.execute("SELECT day, meal_type, dish FROM menu ORDER BY day")
+        menu = cursor.fetchall()
+        
+        # Get meal status for the current student
+        meal_status = {}
+        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
+            meal_status[day] = {}
+            for meal_type in ['breakfast', 'lunch', 'dinner']:
+                cursor.execute("SELECT status FROM meal WHERE student_id = %s AND day = %s AND meal_type = %s",
+                               (user_id, day, meal_type))
+                status = cursor.fetchone()
+                meal_status[day][meal_type] = status[0] if status else None
+        
+        # Fetch booked meals for the current student
+        cursor.execute("SELECT day, meal_type FROM meal WHERE student_id = %s AND status = 'booked'", (user_id,))
+        booked_meals = cursor.fetchall()
+        
+        return render_template('student_dashboard.html', menu=menu, meal_status=meal_status, booked_meals=booked_meals, user_id=user_id)
+    else:
+        return redirect(url_for('index'))
 
 
 @app.route('/book_meal/<day>/<meal_type>', methods=['POST'])
@@ -88,29 +99,30 @@ def cancel_meal(day, meal_type):
     db.commit()
     return redirect(url_for('student_dashboard'))
 
-# Routes
 @app.route('/book_cancel_meal/<day>/<meal_type>', methods=['POST'])
 def book_cancel_meal(day, meal_type):
     # Check if the meal is already booked
-    cursor.execute("SELECT status FROM meal WHERE student_id = %s AND day = %s AND meal_type = %s",
-                   (1, day, meal_type))  # Assuming student ID is 1 (replace with actual student ID)
-    status = cursor.fetchone()
-    if status and status[0] == 'booked':
-        # Meal is booked, cancel it
-        cursor.execute("DELETE FROM meal WHERE student_id = %s AND day = %s AND meal_type = %s",
-                       (1, day, meal_type))  # Assuming student ID is 1 (replace with actual student ID)
-        db.commit()
-    else:
-        # Meal is not booked, book it
-        try:
-            cursor.execute("INSERT INTO meal (student_id, day, meal_type, status) VALUES (%s, %s, %s, %s)",
-                           (1, day, meal_type, 'booked'))  # Assuming student ID is 1 (replace with actual student ID)
-            db.commit()
-        except mysql.connector.errors.IntegrityError:
-            # Duplicate entry error
+    user_id = session.get('user_id')
+    if user_id:
+        cursor.execute("SELECT status FROM meal WHERE student_id = %s AND day = %s AND meal_type = %s",
+                       (user_id, day, meal_type))
+        status = cursor.fetchone()
+        if status and status[0] == 'booked':
+            # Meal is booked, cancel it
             cursor.execute("DELETE FROM meal WHERE student_id = %s AND day = %s AND meal_type = %s",
-                           (1, day, meal_type))  # Assuming student ID is 1 (replace with actual student ID)
+                           (user_id, day, meal_type))
             db.commit()
+        else:
+            # Meal is not booked, book it
+            try:
+                cursor.execute("INSERT INTO meal (student_id, day, meal_type, status) VALUES (%s, %s, %s, %s)",
+                               (user_id, day, meal_type, 'booked'))
+                db.commit()
+            except mysql.connector.errors.IntegrityError:
+                # Duplicate entry error
+                cursor.execute("DELETE FROM meal WHERE student_id = %s AND day = %s AND meal_type = %s",
+                               (user_id, day, meal_type))
+                db.commit()
     return redirect(url_for('student_dashboard'))
 
 
